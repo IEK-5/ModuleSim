@@ -1,3 +1,4 @@
+<<<<<<< HEAD
  *****************************************************************              
  *  I N S T I T U T   F U E R   E N E R G I E F O R S C H U N G  *              
  *  I E K - 5   P H O T O V O L T A I K                          *              
@@ -232,3 +233,15 @@ Example3.m
 	- Create a single defect
 	- Create an illuminated spot
 	- Move the illuminated spot around to compute an LBIC image (just like with real LBIC this is rather slow)
+=======
+ModuleSim
+=========
+
+GNU Octave script to be used together with SourceField to model the impact of defects on thin-film solar modules.
+
+This script depends on the SourceField program (also on github). It uses this program to model the impact of 
+local defects and sheet resistance on the performance of cells within a thin-film solar module.
+
+As the paper is currently under review I will upload the code once it is through :)
+
+>>>>>>> 558992ff4d6e865ce07b9f29376cd0b94e7377d8
