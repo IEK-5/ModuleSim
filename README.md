@@ -1,0 +1,234 @@
+ *****************************************************************              
+ *  I N S T I T U T   F U E R   E N E R G I E F O R S C H U N G  *              
+ *  I E K - 5   P H O T O V O L T A I K                          *              
+ *                                                               *              
+ *        ########                _   _                          *              
+ *     ##########                |_| |_|                         *              
+ *    ##########     ##         _ _   _ _     ___ ____ _   _     *              
+ *   ##########     ####       | | | | | |   |_ _/ ___| | | |    *              
+ *   #########     #####    _  | | | | | |    | | |   | |_| |    *              
+ *   #    ###     ######   | |_| | |_| | |___ | | |___|  _  |    *              
+ *    #          ######     \___/ \___/|_____|___\____|_| |_|    *              
+ *     ##      #######      F o r s c h u n g s z e n t r u m    *              
+ *       ##########                                              *              
+ *                                                               *              
+ *   http://www.fz-juelich.de/iek/iek-5/EN/Home/home_node.html   *              
+ *****************************************************************
+ *                                                               *
+ * Dr. Bart E. Pieters 2013                                      *
+ *                                                               *             
+ *****************************************************************                                                                             
+
+
+This document describes how to use the ThinFilmSim script. Using this script you can compute the impact of local defects 
+(shunts) on the performance of a thin-film solar cell in a module. The model is described in 
+B. E. Pieters, and U. Rau, "A new 2D model for the electrical potential in a cell stripe in thin-film solar modules 
+including local defects", Prog. Photovolt: Res. Appl. (2013), DOI: 10.1002/pip.2436
+
+The main script, ThinFilmSim.m, is actually not a script but just a collection of functions. The functions are written for 
+GNU octave. Allthough octave is somewhat compatible with Matlab I do not expect ThinFilmSim to run under Matlab. If you need 
+this feel free to contribute a Matlab compatible version. I expect this script to run under windows but have not tested it. 
+Development and tests have been performed on a linux system only.
+
+To use the function in ThinFilmSim you have to write a script of adapt one of the example scripts to your needs. The way the
+ThinFilmSim file was written may be unfamilliar for most Matlab/Octave users. Normally, Matlab users write one "m-file" per 
+function. This, in my opinion, only works when you have few functions. I prefer to have some overview an place many function 
+in a single file, ThinFilmSim.m. To make the function in ThinFilmSim.m available to your script you must "source" it. How I 
+do it should become clear from the example scripts.
+
+To simulate a thin-film cell stripe I first define the geometry and the device and then start solving operating points and 
+extract data. This document is roughly organized in the same way. In Section 1 I discuss how to specifa the geometry and 
+properties of the device. In Section 2 I discuss a few (very few) numerical settings which are used. In a next step we can 
+specify and solve the operating point. This is discussed in Section 3. Once the operating point is known we can extract the 
+data we want, which is described in Section 4. Section 5, finally, lists all the examples I provide along with the script.
+
+Section 1:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Specifying the Device
+
+The geometry of the device is defined with the following (global) variables:
+x1 				% x coordinate for the lower left corner 			[cm]
+x2 				% x coordinate for the upper right corner 			[cm]
+y1 				% y coordinate for the lower left corner 			[cm]
+y2 				% y coordinate for the upper right corner 			[cm]
+
+The resistive electrode is characterized by its sheet resistance:
+Rf 				% Sheet resistance of the electrode 				[Ohm]
+
+To define a diode I provide a function which implements the following equivalent circuit:
+                                                                               
+                                   +--------+                                   
+             +-------+--------+----|        |----o                              
+             |       |        |    +--------+                                   
+             |       |       _|_       Rs                                       
+         |  / \    __|__    |   |                                               
+         | /___\    / \     |   |                                               
+    Jph  | \   /   /___\ D  |   | Rp                                            
+        \|/ \ /      |      |___|                                               
+         '   |       |        |                                                 
+             |       |        |                                                 
+             +-------+--------+------------------o                 
+
+The function is called as follows:
+JV = GenJV(Rs, Rp,  Js, Jph, nid, T, V1, V2, N)
+The parameters are described in the following table:                                                                                
+ parameter | description            Unit                                        
+-----------+-----------------------+---------                                   
+    Rs     | Series Resistance     |  Ohm cm2                                   
+    Rp     | Parallel Resistance   |  Ohm cm2                                   
+    Jph    | Photo Current Density |  A/cm2                                     
+    nid    | Diode ideality factor |  -                                         
+    T      | Temperature           |  K                                         
+    V1     | Start voltage         |  V                                         
+    V2     | End voltage           |  V                                         
+    N      | Number of steps       |  -                
+
+The function returns a matrix with two columns and N rows. The first column contains the voltage going from V1 to V2 in 
+equidistant steps, and the second the current density in A/cm2. Naturally it is also possible to provide your own data
+in the form of a text file which can be loaded into octave, e.g.
+VJ=load("jv_data.dat");
+
+Having a JV characteristic we need to tell the program what to do with it. To use the JV characteristic as the diode 
+one can call:
+SetDiode(VJ)
+One can also define a point source with the given JV characteristic by calling:
+AddPointSource(VJ,x,y,r),
+where x and y are the coordinates of the point source and r is the radius. One must always first define the diode 
+before one can add a point source. 
+
+When creating a point source the point source is given an index number starting at 1. One can change the properties of
+a point source by calling 
+SetPointSource(index,VJ,x,y,r),
+where index is the index number. With this function one can thus move the point source or change its radius of JV 
+characteristic. (Likewise one can also use SetDiode to change the diode properties at any time).
+
+Having all these things defined we can start calculating stuff. Before we actually do that there are the numerical 
+settings.
+
+Section 2:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Numerical Settings
+Nbisect				- This parameter affects the convergence of the iterative solvers. Every Nbisect 
+				  iterations the iterative scheme does one bisection iteration. Bisection is more
+				  robust (it always converges) but is often (but not always) slower. It's default 
+				  value is 3
+Nnumint				- To compute the external current induced by a point source I need to perform a 
+				  numerical integration. This parameter affects the number of points used to 
+				  approximate the integral (more is slower but more accurate). Its default value is 
+				  500
+SFErr				- The accuracy of the calculation of the potential induced by a point source. 
+				  The default value is 1e-4. This is a fairly good estimate of the relative error 
+				  of the computed potentials.  
+
+
+Section 3:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Finding the operating point of the device
+The following function can be used to set an operating point:
+[I, Ve, Iext]=SetCurrent(Ii, e)
+INPUT:
+	Ii:	total injected current 	[A]
+	e:	Maximum relative error	[-]
+OUTPUT:
+	I:	Currents through each 	[A]
+		solution
+	Ve:	External voltage	[V]
+	Iext:	External current for 	[A]
+		each solution
+
+[I,Iext]=SetVoltage(V, e)
+INPUT:
+	V:	External voltage	[V]
+	e:	Maximum relative error	[-]
+OUTPUT:
+	I:	Currents through each 	[A]
+		solution
+	Iext:	External current for 	[A]
+		each solution
+
+[I,Ve, Iext]=FindMPP(e)
+INPUT:
+	e:	Maximum relative error	[-]
+OUTPUT:
+	I:	Currents through each 	[A]
+		solution
+	Ve:	External voltage	[V]
+	Iext:	External current for 	[A]
+		each solution
+
+After calling this function the array I contains the current for each part solution. The first element of I is the current
+through the diode. All the following elements are the currents through each point source. Note that the current through a 
+point source is not the same es the external current it induces. These values are in the Iext array. The sum of the currents 
+in the Iext array is the total current through the device. 
+
+Section 4:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Extracting data
+After having an operating point one can extract data. For this the following functions are useful:
+
+The voltage for each part solution (average voltage over the electrode and voltage at each defect's circumference):
+V=SolV(I)
+INPUT:
+	Initialized global variable lin_sys
+	I:	current through each 	[A]
+	        solution
+OUTPUT:
+	Bias voltage for each part solution
+
+The potential at given coordinates
+function V=Potential(c,I)
+INPUT:
+	c: 	columnar coordinates x:y	[cm]:[cm]
+	I:	Currents through each 	[A]
+		solution
+OUTPUT:
+	V:	Voltage @ c		[V]
+
+
+The electric field at given coordinates
+function Ef=EField(c,I)
+INPUT:
+	c: 	columnar coordinates x:y	[cm]:[cm]
+	I:	Currents through each 	[A]
+		solution
+OUTPUT:
+	Ef:	Electric field @ c	[V/cm]:[V/cm]
+		in x&y
+
+
+All you want to know at given coordinates
+[V,Ef,Jf, Jj, Pf,Pj]=VEJP(c,I)
+INPUT:
+	c: 	columnar coordinates x:y	[cm]:[cm]
+	I:	Currents through each 	[A]
+		solution
+OUTPUT:
+	V:	potential @ c		[V]
+	Ef:	Electric field @ c	[V/cm]:[V/cm]
+		in x&y
+	Jf:	Current density @ c	[A/cm]:[A/cm]
+		in electrode x&y
+	Jj:	Current density @ c	[A/cm2]
+		through diode
+	Pf:	Power density @ c	[W/cm2]
+		in electrode
+	Pj:	Power density @ c	[W/cm2]
+		in diode
+
+Section 5:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Examples
+In this directory I have included several example scripts. To run an example script you need to first get GNU 
+Octave running on your system. Second you need to compile SourceField (also on GitHub) or get a precompiled copy
+for your system. The SourceField executable should be in the same directory as the octacve scripts. In a proper 
+shell one should be able to simply execute the example files. For not so proper shells one can try:
+<path-to-octave-executable> ExampleN.m
+The output of the example files usually consists of output files with plain text data and whatever you see 
+passing by on stdout. 
+
+Example1.m
+	- Create a single defect
+	- Compute a JV characteristics
+Example2.m
+	- Create three defects at various positions
+	- set a single operating point (either a fixed current, a fixed voltage, or set the maximum power point)
+	- compute spatially resolved potential, field, power densities, etc.
+Example3.m
+	- Create a single defect
+	- Create an illuminated spot
+	- Move the illuminated spot around to compute an LBIC image (just like with real LBIC this is rather slow)
