@@ -25,6 +25,10 @@ This document describes how to use the ThinFilmSim script. Using this script you
 B. E. Pieters, and U. Rau, "A new 2D model for the electrical potential in a cell stripe in thin-film solar modules 
 including local defects", Prog. Photovolt: Res. Appl. (2013), DOI: 10.1002/pip.2436
 
+Before you start you should get yourself a binary of the SourceField program. You can either compile it yourself 
+(https://github.com/IEK-5/SourceField) or download the latest release (https://github.com/IEK-5/SourceField/releases/latest).
+This file must be in the same directory as the scripts.
+
 The main script, ThinFilmSim.m, is actually not a script but just a collection of functions. The functions are written for 
 GNU octave. Allthough octave is somewhat compatible with Matlab I do not expect ThinFilmSim to run under Matlab. If you need 
 this feel free to contribute a Matlab compatible version. I expect this script to run under windows but have not tested it. 
