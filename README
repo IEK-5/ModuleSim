@@ -25,6 +25,8 @@ This document describes how to use the ThinFilmSim script. Using this script you
 B. E. Pieters, and U. Rau, "A new 2D model for the electrical potential in a cell stripe in thin-film solar modules 
 including local defects", Prog. Photovolt: Res. Appl. (2013), DOI: 10.1002/pip.2436
 
+This program was developed with supported from the EU FP7 project SOPHIA, grant no. 262533
+
 Before you start you should get yourself a binary of the SourceField program. You can either compile it yourself 
 (https://github.com/IEK-5/SourceField) or download the latest release (https://github.com/IEK-5/SourceField/releases/latest).
 This file must be in the same directory as the scripts.
